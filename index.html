@@ -41,7 +41,7 @@
 <div class="page">
   <header>
     <h1>优惠券统计报表</h1>
-    <p>统计周期：本周 · 生成时间：2026-09-05 22:31</p>
+    <p>统计周期：本周 · 生成时间：2026-09-06 03:53</p>
   </header>
   <div class="kpis">
     <div class="kpi"><div class="label">券类型数</div><div class="value" id="kpiTypes">-</div><div class="sub">当前筛选结果</div></div>
@@ -67,7 +67,7 @@
   </div>
 </div>
 <script>
-const DATA = [{"id": "66007", "name": "小芝士蛋糕配草莓酱券（点单页面直接兑换）|Free Berry cheesecake", "issued": 155, "used": 6, "rate": 3.87}, {"id": "66009", "name": "免费冰淇淋球一份", "issued": 6, "used": 2, "rate": 33.33}, {"id": "66010", "name": "任意儿童餐享半价优惠", "issued": 13, "used": 4, "rate": 30.77}, {"id": "66012", "name": "免费开心莓果（任意消费）", "issued": 104485, "used": 91, "rate": 0.09}, {"id": "66013", "name": "驰名巧克力熔岩蛋糕半价券", "issued": 104485, "used": 69, "rate": 0.07}, {"id": "66014", "name": "100-50元满减券", "issued": 104713, "used": 401, "rate": 0.38}, {"id": "66015", "name": "38元无门槛代金券", "issued": 14975, "used": 94, "rate": 0.63}];
+const DATA = [{"id": "66007", "name": "小芝士蛋糕配草莓酱券（点单页面直接兑换）|Free Berry cheesecake", "issued": 155, "used": 6, "rate": 3.87}, {"id": "66009", "name": "免费冰淇淋球一份", "issued": 6, "used": 2, "rate": 33.33}, {"id": "66010", "name": "任意儿童餐享半价优惠", "issued": 13, "used": 4, "rate": 30.77}, {"id": "66012", "name": "免费开心莓果（任意消费）", "issued": 104485, "used": 92, "rate": 0.09}, {"id": "66013", "name": "驰名巧克力熔岩蛋糕半价券", "issued": 104485, "used": 70, "rate": 0.07}, {"id": "66014", "name": "100-50元满减券", "issued": 104713, "used": 401, "rate": 0.38}, {"id": "66015", "name": "38元无门槛代金券", "issued": 14975, "used": 94, "rate": 0.63}];
 function fmt(n) { return new Intl.NumberFormat('zh-CN').format(n); }
 function render() {
   const q = document.getElementById('search').value.trim().toLowerCase();
