@@ -50,14 +50,31 @@
   .rank-bar { height:100%; background:linear-gradient(90deg,#2f6fed,#7aa5ff); border-radius:99px; }
   .rank-used { text-align:right; flex:none; min-width:56px; font-weight:700; font-variant-numeric:tabular-nums; }
   .rank-rate { text-align:right; flex:none; min-width:70px; font-weight:700; color:var(--brand); font-variant-numeric:tabular-nums; }
-  @media (max-width:600px) { .kpi .value { font-size:18px; } th, td { padding:9px 8px; } }
+  @media (max-width:600px) {
+    .kpi .value { font-size:18px; }
+    .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    table { width:100%; min-width:360px; table-layout:fixed; font-size:12px; }
+    th, td { padding:8px 5px; }
+    th:nth-child(1), td:nth-child(1) { width:12%; }
+    th:nth-child(2), td:nth-child(2) { width:31%; }
+    th:nth-child(3), td:nth-child(3) { width:20%; text-align:right; }
+    th:nth-child(4), td:nth-child(4) { width:20%; text-align:right; }
+    th:nth-child(5), td:nth-child(5) { width:17%; }
+    .name { font-size:12px; line-height:1.35; word-break:break-word; }
+    .num { font-size:12px; }
+    .rate-cell { gap:3px; }
+    .bar { min-width:8px; }
+    .rate-val { min-width:40px; font-size:12px; }
+    .rank-name { font-size:13px; }
+    .rank-item { padding:9px 10px; gap:8px; }
+  }
 </style>
 </head>
 <body>
 <div class="page">
   <header>
     <h1>优惠券统计报表</h1>
-    <p>数据范围：2026-09-01 至 2026-09-05 · 生成时间：2026-09-06 16:26</p>
+    <p>数据范围：2026-09-01 至 2026-09-05 · 生成时间：2026-09-06 16:41</p>
   </header>
 
   <div class="kpis">
