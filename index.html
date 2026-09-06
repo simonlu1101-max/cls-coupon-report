@@ -93,7 +93,7 @@
 <div class="page">
   <header>
     <h1>优惠券统计报表</h1>
-    <p>数据范围：2026-09-01 至 2026-09-06 · 生成时间：2026-09-07 06:47</p>
+    <p>数据范围：2026-09-01 至 2026-09-06 · 生成时间：2026-09-07 07:10</p>
   </header>
 
   <div class="kpis">
@@ -425,18 +425,49 @@ init();
   });
 
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  var rec=null; var listening=false;
-  if(SR){ rec=new SR(); rec.lang='zh-CN'; rec.interimResults=false; rec.maxAlternatives=1; }
+  var rec=null; var listening=false; var listenTimer=null;
+  if(SR){ rec=new SR(); rec.lang='zh-CN'; rec.interimResults=false; rec.maxAlternatives=1; rec.continuous=false; }
+  function stopListening(msg){
+    if(listenTimer){ clearTimeout(listenTimer); listenTimer=null; }
+    listening=false;
+    micBtn.classList.remove('listening');
+    micBtn.textContent='🎤';
+    if(msg){ addMsg('bot', msg); }
+  }
   micBtn.addEventListener('click', function(){
-    if(!rec){ addMsg('bot','当前浏览器不支持语音输入，请使用文字输入。'); return; }
-    if(listening){ try{ rec.stop(); }catch(e){} return; }
-    listening=true; micBtn.classList.add('listening'); micBtn.textContent='●';
-    try{ rec.start(); }catch(e){ listening=false; micBtn.classList.remove('listening'); micBtn.textContent='🎤'; addMsg('bot','无法启动麦克风，请检查浏览器权限。'); }
+    if(!rec){ addMsg('bot','当前浏览器不支持语音输入，请改用文字输入，或用 Chrome/Edge/Safari 打开。'); return; }
+    if(listening){ try{ rec.stop(); }catch(e){} stopListening(); return; }
+    listening=true;
+    micBtn.classList.add('listening');
+    micBtn.textContent='●';
+    addMsg('bot','正在聆听，请说话…');
+    listenTimer=setTimeout(function(){
+      try{ rec.stop(); }catch(e){}
+      stopListening('没有听到声音，请检查麦克风权限后重试。');
+    }, 12000);
+    try{
+      rec.start();
+    }catch(e){
+      stopListening('无法启动麦克风，请检查浏览器麦克风权限。');
+    }
   });
   if(rec){
-    rec.onresult=function(e){ var t=e.results[0][0].transcript; textInput.value=''; send(t, true); };
-    rec.onerror=function(){ listening=false; micBtn.classList.remove('listening'); micBtn.textContent='🎤'; addMsg('bot','语音识别失败，请重试或改用文字输入。'); };
-    rec.onend=function(){ listening=false; micBtn.classList.remove('listening'); micBtn.textContent='🎤'; };
+    rec.onresult=function(e){
+      if(listenTimer){ clearTimeout(listenTimer); listenTimer=null; }
+      var t='';
+      for(var i=0;i<e.results.length;i++){ if(e.results[i] && e.results[i][0]){ t+=e.results[i][0].transcript; } }
+      if(t){ textInput.value=''; send(t, true); }
+      else { stopListening('没有识别到内容，请重试。'); }
+    };
+    rec.onerror=function(e){
+      var err=(e && e.error) || '';
+      var msg='语音识别失败：'+err+'。请重试或改用文字输入。';
+      if(err==='not-allowed' || err==='service-not-allowed'){ msg='麦克风权限被拒绝，请在浏览器设置中允许麦克风。'; }
+      else if(err==='no-speech'){ msg='没有检测到语音，请靠近麦克风再试。'; }
+      else if(err==='network'){ msg='语音识别网络异常，请检查网络后重试。'; }
+      stopListening(msg);
+    };
+    rec.onend=function(){ if(listening){ stopListening(); } };
   }
 
   fab.addEventListener('click', function(){
