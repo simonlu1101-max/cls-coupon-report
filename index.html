@@ -57,7 +57,7 @@
 <div class="page">
   <header>
     <h1>优惠券统计报表</h1>
-    <p>数据范围：2026-09-01 至 2026-09-05 · 生成时间：2026-09-06 13:19</p>
+    <p>数据范围：2026-09-01 至 2026-09-05 · 生成时间：2026-09-06 16:26</p>
   </header>
 
   <div class="kpis">
@@ -72,6 +72,8 @@
     <div class="quick">
       <button data-range="yesterday">昨日</button>
       <button data-range="week">本周</button>
+      <button data-range="month">本月</button>
+      <button data-range="lastMonth">上月</button>
       <button data-range="all" class="active">全部</button>
     </div>
     <div class="row" style="margin-top:12px;">
@@ -118,6 +120,15 @@ function isoDaysAgo(n) {
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
 
+function monthRange(offset) {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const last = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0);
+  const p = x => String(x).padStart(2,'0');
+  const f = d => d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+  return [f(first), f(last)];
+}
+
 function setRange(start, end) {
   document.getElementById('startDate').value = start;
   document.getElementById('endDate').value = end;
@@ -131,6 +142,8 @@ document.querySelectorAll('.quick button').forEach(btn => {
     const r = btn.dataset.range;
     if (r === 'all') setRange(MIN_DATE, MAX_DATE);
     else if (r === 'yesterday') { const y = isoDaysAgo(1); setRange(y, y); }
+    else if (r === 'month') { const m = monthRange(0); setRange(m[0], MAX_DATE); }
+    else if (r === 'lastMonth') { const m = monthRange(-1); setRange(m[0], m[1]); }
     else { const mon = isoDaysAgo((new Date().getDay() + 6) % 7); const sun = isoDaysAgo(0); setRange(mon, sun); }
   });
 });
@@ -235,10 +248,12 @@ function render() {
 }
 
 function init() {
-  document.getElementById('startDate').min = MIN_DATE;
-  document.getElementById('startDate').max = MAX_DATE;
-  document.getElementById('endDate').min = MIN_DATE;
-  document.getElementById('endDate').max = MAX_DATE;
+  const lastMonth = monthRange(-1);
+  const today = isoDaysAgo(0);
+  document.getElementById('startDate').min = lastMonth[0];
+  document.getElementById('startDate').max = today;
+  document.getElementById('endDate').min = lastMonth[0];
+  document.getElementById('endDate').max = today;
   document.getElementById('startDate').value = MIN_DATE;
   document.getElementById('endDate').value = MAX_DATE;
   render();
