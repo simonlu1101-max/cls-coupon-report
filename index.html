@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
 <title>优惠券统计报表 · 手机版</title>
 <style>
-  :root { --bg:#f4f6f9; --card:#ffffff; --text:#1f2733; --muted:#6b7686; --line:#e4e8ee; --brand:#2f6fed; }
+  :root { --bg:#f4f6f9; --card:#fff; --text:#1f2733; --muted:#6b7686; --line:#e4e8ee; --brand:#2f6fed; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Arial,sans-serif; }
   .page { max-width:920px; margin:0 auto; padding:16px 14px 32px; }
@@ -14,7 +14,7 @@
   .kpis { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:16px 0; }
   .kpi { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; }
   .kpi .label { color:var(--muted); font-size:12px; }
-  .kpi .value { font-size:22px; font-weight:700; margin-top:4px; }
+  .kpi .value { font-size:21px; font-weight:700; margin-top:4px; }
   .kpi .sub { color:var(--muted); font-size:11px; margin-top:2px; }
   .controls { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:12px; }
   .row { display:flex; flex-wrap:wrap; gap:10px; }
@@ -23,6 +23,9 @@
   label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
   input, select { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font-size:15px; background:#fff; color:var(--text); appearance:none; }
   input:focus, select:focus { outline:none; border-color:var(--brand); box-shadow:0 0 0 3px rgba(47,111,237,.12); }
+  .quick { display:flex; gap:8px; flex-wrap:wrap; }
+  .quick button { border:1px solid var(--line); background:#fff; color:var(--text); padding:8px 12px; border-radius:999px; font-size:13px; }
+  .quick button.active { background:var(--brand-soft,#eaf1ff); border-color:var(--brand); color:var(--brand); font-weight:600; }
   .table-wrap { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
   table { width:100%; border-collapse:collapse; font-size:14px; }
   thead th { text-align:left; padding:10px 12px; background:#fafbfc; color:var(--muted); font-weight:600; white-space:nowrap; }
@@ -34,30 +37,58 @@
   .bar i { display:block; height:100%; background:linear-gradient(90deg,#2f6fed,#7aa5ff); border-radius:99px; }
   .rate-val { min-width:48px; text-align:right; color:var(--brand); font-weight:700; }
   .empty { padding:28px; text-align:center; color:var(--muted); }
-  @media (max-width:600px) { .kpi .value { font-size:19px; } th, td { padding:9px 8px; } }
+  .section-title { font-size:14px; font-weight:700; margin:14px 0 8px; }
+  .rank-list { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:4px 0; margin-bottom:12px; overflow:hidden; }
+  .rank-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-top:1px solid var(--line); }
+  .rank-item:first-child { border-top:none; }
+  .rank-no { width:22px; height:22px; border-radius:8px; background:#eef1f5; color:#6b7686; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex:none; }
+  .rank-no.top { background:var(--brand); color:#fff; }
+  .rank-main { flex:1; min-width:0; }
+  .rank-name { font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rank-meta { font-size:12px; color:var(--muted); margin-top:2px; }
+  .rank-bar-wrap { height:6px; background:#eef1f5; border-radius:99px; overflow:hidden; margin-top:5px; }
+  .rank-bar { height:100%; background:linear-gradient(90deg,#2f6fed,#7aa5ff); border-radius:99px; }
+  .rank-used { text-align:right; flex:none; min-width:56px; font-weight:700; font-variant-numeric:tabular-nums; }
+  @media (max-width:600px) { .kpi .value { font-size:18px; } th, td { padding:9px 8px; } }
 </style>
 </head>
 <body>
 <div class="page">
   <header>
     <h1>优惠券统计报表</h1>
-    <p>统计周期：本周 · 生成时间：2026-09-06 03:53</p>
+    <p>数据范围：2026-09-01 至 2026-09-05 · 生成时间：2026-09-06 09:51</p>
   </header>
+
   <div class="kpis">
+    <div class="kpi"><div class="label">统计天数</div><div class="value" id="kpiDays">-</div><div class="sub">当前所选日期段</div></div>
     <div class="kpi"><div class="label">券类型数</div><div class="value" id="kpiTypes">-</div><div class="sub">当前筛选结果</div></div>
-    <div class="kpi"><div class="label">发放数量</div><div class="value" id="kpiIssued">-</div><div class="sub">优惠券发放总数</div></div>
-    <div class="kpi"><div class="label">使用数量</div><div class="value" id="kpiUsed">-</div><div class="sub">优惠券使用总数</div></div>
-    <div class="kpi"><div class="label">平均核销率</div><div class="value" id="kpiRate">-</div><div class="sub">使用数量 ÷ 发放数量</div></div>
+    <div class="kpi"><div class="label">发放数量</div><div class="value" id="kpiIssued">-</div><div class="sub">日期段发放总数</div></div>
+    <div class="kpi"><div class="label">使用数量</div><div class="value" id="kpiUsed">-</div><div class="sub">日期段使用总数</div></div>
+    <div class="kpi"><div class="label">平均核销率</div><div class="value" id="kpiRate">-</div><div class="sub">使用 ÷ 发放</div></div>
   </div>
+
   <div class="controls">
-    <div class="row">
+    <div class="quick">
+      <button data-range="yesterday">昨日</button>
+      <button data-range="week">本周</button>
+      <button data-range="all" class="active">全部</button>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <div class="field half"><label for="startDate">开始日期</label><input type="date" id="startDate"></div>
+      <div class="field half"><label for="endDate">结束日期</label><input type="date" id="endDate"></div>
+    </div>
+    <div class="row" style="margin-top:10px;">
       <div class="field"><label for="search">搜索</label><input id="search" type="search" placeholder="输入券类型名称或编号"></div>
     </div>
     <div class="row" style="margin-top:10px;">
-      <div class="field half"><label for="sortBy">排序字段</label><select id="sortBy"><option value="name">券类型名称</option><option value="issued" selected>发放数量</option><option value="used">使用数量</option><option value="rate">平均核销率</option></select></div>
+      <div class="field half"><label for="sortBy">排序字段</label><select id="sortBy"><option value="name">券类型名称</option><option value="issued" selected>发放数量</option><option value="used">使用数量</option><option value="rate">核销率</option></select></div>
       <div class="field half"><label for="sortDir">排序方向</label><select id="sortDir"><option value="desc" selected>从高到低</option><option value="asc">从低到高</option></select></div>
     </div>
   </div>
+
+  <div class="section-title">使用数量排名</div>
+  <div class="rank-list" id="rankList"></div>
+
   <div class="table-wrap">
     <table>
       <thead><tr><th>编号</th><th>券类型名称</th><th style="text-align:right;">发放数量</th><th style="text-align:right;">使用数量</th><th style="text-align:right;">核销率</th></tr></thead>
@@ -66,37 +97,114 @@
     <div class="empty" id="empty" style="display:none;">没有匹配的数据</div>
   </div>
 </div>
+
 <script>
-const DATA = [{"id": "66007", "name": "小芝士蛋糕配草莓酱券（点单页面直接兑换）|Free Berry cheesecake", "issued": 155, "used": 6, "rate": 3.87}, {"id": "66009", "name": "免费冰淇淋球一份", "issued": 6, "used": 2, "rate": 33.33}, {"id": "66010", "name": "任意儿童餐享半价优惠", "issued": 13, "used": 4, "rate": 30.77}, {"id": "66012", "name": "免费开心莓果（任意消费）", "issued": 104485, "used": 92, "rate": 0.09}, {"id": "66013", "name": "驰名巧克力熔岩蛋糕半价券", "issued": 104485, "used": 70, "rate": 0.07}, {"id": "66014", "name": "100-50元满减券", "issued": 104713, "used": 401, "rate": 0.38}, {"id": "66015", "name": "38元无门槛代金券", "issued": 14975, "used": 94, "rate": 0.63}];
-function fmt(n) { return new Intl.NumberFormat('zh-CN').format(n); }
+const DATA = [{"date": "2026-09-01", "id": "66007", "name": "小芝士蛋糕配草莓酱券（点单页面直接兑换）|Free Berry cheesecake", "issued": 25, "used": 0, "rate": 0.0}, {"date": "2026-09-01", "id": "66010", "name": "任意儿童餐享半价优惠", "issued": 1, "used": 0, "rate": 0.0}, {"date": "2026-09-01", "id": "66012", "name": "免费开心莓果（任意消费）", "issued": 104485, "used": 15, "rate": 0.01}, {"date": "2026-09-01", "id": "66013", "name": "驰名巧克力熔岩蛋糕半价券", "issued": 104485, "used": 7, "rate": 0.01}, {"date": "2026-09-01", "id": "66014", "name": "100-50元满减券", "issued": 104713, "used": 45, "rate": 0.04}, {"date": "2026-09-01", "id": "66015", "name": "38元无门槛代金券", "issued": 14975, "used": 11, "rate": 0.07}, {"date": "2026-09-02", "id": "66007", "name": "小芝士蛋糕配草莓酱券（点单页面直接兑换）|Free Berry cheesecake", "issued": 21, "used": 1, "rate": 4.76}, {"date": "2026-09-02", "id": "66009", "name": "免费冰淇淋球一份", "issued": 3, "used": 1, "rate": 33.33}, {"date": "2026-09-02", "id": "66010", "name": "任意儿童餐享半价优惠", "issued": 1, "used": 0, "rate": 0.0}, {"date": "2026-09-02", "id": "66012", "name": "免费开心莓果（任意消费）", "issued": 0, "used": 7, "rate": 0.0}, {"date": "2026-09-02", "id": "66013", "name": "驰名巧克力熔岩蛋糕半价券", "issued": 0, "used": 14, "rate": 0.0}, {"date": "2026-09-02", "id": "66014", "name": "100-50元满减券", "issued": 0, "used": 64, "rate": 0.0}, {"date": "2026-09-02", "id": "66015", "name": "38元无门槛代金券", "issued": 0, "used": 13, "rate": 0.0}, {"date": "2026-09-03", "id": "66007", "name": "小芝士蛋糕配草莓酱券（点单页面直接兑换）|Free Berry cheesecake", "issued": 28, "used": 1, "rate": 3.57}, {"date": "2026-09-03", "id": "66010", "name": "任意儿童餐享半价优惠", "issued": 1, "used": 0, "rate": 0.0}, {"date": "2026-09-03", "id": "66012", "name": "免费开心莓果（任意消费）", "issued": 0, "used": 4, "rate": 0.0}, {"date": "2026-09-03", "id": "66013", "name": "驰名巧克力熔岩蛋糕半价券", "issued": 0, "used": 6, "rate": 0.0}, {"date": "2026-09-03", "id": "66014", "name": "100-50元满减券", "issued": 0, "used": 63, "rate": 0.0}, {"date": "2026-09-03", "id": "66015", "name": "38元无门槛代金券", "issued": 0, "used": 18, "rate": 0.0}, {"date": "2026-09-04", "id": "66007", "name": "小芝士蛋糕配草莓酱券（点单页面直接兑换）|Free Berry cheesecake", "issued": 31, "used": 1, "rate": 3.23}, {"date": "2026-09-04", "id": "66010", "name": "任意儿童餐享半价优惠", "issued": 3, "used": 1, "rate": 33.33}, {"date": "2026-09-04", "id": "66012", "name": "免费开心莓果（任意消费）", "issued": 0, "used": 20, "rate": 0.0}, {"date": "2026-09-04", "id": "66013", "name": "驰名巧克力熔岩蛋糕半价券", "issued": 0, "used": 15, "rate": 0.0}, {"date": "2026-09-04", "id": "66014", "name": "100-50元满减券", "issued": 0, "used": 81, "rate": 0.0}, {"date": "2026-09-04", "id": "66015", "name": "38元无门槛代金券", "issued": 0, "used": 25, "rate": 0.0}, {"date": "2026-09-05", "id": "66007", "name": "小芝士蛋糕配草莓酱券（点单页面直接兑换）|Free Berry cheesecake", "issued": 27, "used": 3, "rate": 11.11}, {"date": "2026-09-05", "id": "66009", "name": "免费冰淇淋球一份", "issued": 3, "used": 1, "rate": 33.33}, {"date": "2026-09-05", "id": "66010", "name": "任意儿童餐享半价优惠", "issued": 6, "used": 2, "rate": 33.33}, {"date": "2026-09-05", "id": "66012", "name": "免费开心莓果（任意消费）", "issued": 0, "used": 46, "rate": 0.0}, {"date": "2026-09-05", "id": "66013", "name": "驰名巧克力熔岩蛋糕半价券", "issued": 0, "used": 28, "rate": 0.0}, {"date": "2026-09-05", "id": "66014", "name": "100-50元满减券", "issued": 0, "used": 148, "rate": 0.0}, {"date": "2026-09-05", "id": "66015", "name": "38元无门槛代金券", "issued": 0, "used": 27, "rate": 0.0}];
+const MIN_DATE = '2026-09-01';
+const MAX_DATE = '2026-09-05';
+const dateSort = (a,b) => a.localeCompare(b);
+const uniqueDates = [...new Set(DATA.map(r => r.date))].sort(dateSort);
+const fmt = n => new Intl.NumberFormat('zh-CN').format(n);
+
+function isoDaysAgo(n) {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - n);
+  const p = x => String(x).padStart(2,'0');
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+}
+
+function setRange(start, end) {
+  document.getElementById('startDate').value = start;
+  document.getElementById('endDate').value = end;
+  render();
+}
+
+document.querySelectorAll('.quick button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.quick button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const r = btn.dataset.range;
+    if (r === 'all') setRange(MIN_DATE, MAX_DATE);
+    else if (r === 'yesterday') { const y = isoDaysAgo(1); setRange(y, y); }
+    else { const mon = isoDaysAgo((new Date().getDay() + 6) % 7); const sun = isoDaysAgo(0); setRange(mon, sun); }
+  });
+});
+
+document.getElementById('startDate').addEventListener('change', render);
+document.getElementById('endDate').addEventListener('change', render);
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('sortBy').addEventListener('change', render);
+document.getElementById('sortDir').addEventListener('change', render);
+
 function render() {
+  const start = document.getElementById('startDate').value || MIN_DATE;
+  const end = document.getElementById('endDate').value || MAX_DATE;
   const q = document.getElementById('search').value.trim().toLowerCase();
   const sortBy = document.getElementById('sortBy').value;
   const sortDir = document.getElementById('sortDir').value;
-  let rows = DATA.filter(r => !q || (r.name + ' ' + r.id).toLowerCase().includes(q));
+
+  const filtered = DATA.filter(r => r.date >= start && r.date <= end);
+  const days = new Set(filtered.map(r => r.date));
+  const map = new Map();
+  for (const r of filtered) {
+    const key = r.id;
+    if (!map.has(key)) map.set(key, { id:r.id, name:r.name, issued:0, used:0 });
+    const g = map.get(key);
+    g.issued += r.issued;
+    g.used += r.used;
+  }
+  let rows = [...map.values()];
+  rows = rows.filter(r => !q || (r.name + ' ' + r.id).toLowerCase().includes(q));
   const mult = sortDir === 'asc' ? 1 : -1;
-  rows = rows.slice().sort((a,b) => sortBy === 'name' ? a.name.localeCompare(b.name,'zh-Hans-CN')*mult : (a[sortBy]-b[sortBy])*mult);
+  rows = rows.sort((a,b) => sortBy === 'name' ? a.name.localeCompare(b.name,'zh-Hans-CN')*mult : ((a[sortBy]||0)-(b[sortBy]||0))*mult);
+
+  const ranked = [...rows].sort((a,b)=>b.used-a.used).slice(0,10);
+  const maxUsed = ranked.length ? ranked[0].used : 0;
+  const rankList = document.getElementById('rankList');
+  rankList.innerHTML = '';
+  ranked.forEach((r, idx) => {
+    const div = document.createElement('div');
+    div.className = 'rank-item';
+    div.innerHTML = '<div class="rank-no' + (idx < 3 ? ' top' : '') + '">' + (idx+1) + '</div>' +
+      '<div class="rank-main"><div class="rank-name">' + r.name + '</div><div class="rank-meta">发放 ' + fmt(r.issued) + ' · 核销率 ' + (r.issued ? (r.used/r.issued*100).toFixed(2) : '0.00') + '%</div>' +
+      '<div class="rank-bar-wrap"><div class="rank-bar" style="width:' + (maxUsed ? r.used/maxUsed*100 : 0) + '%"></div></div></div>' +
+      '<div class="rank-used">' + fmt(r.used) + '</div>';
+    rankList.appendChild(div);
+  });
+
   const issued = rows.reduce((s,r)=>s+r.issued,0);
   const used = rows.reduce((s,r)=>s+r.used,0);
-  const rate = issued ? used/issued*100 : 0;
+  const overallRate = issued ? used/issued*100 : 0;
+
+  document.getElementById('kpiDays').textContent = fmt(days.size);
   document.getElementById('kpiTypes').textContent = fmt(rows.length);
   document.getElementById('kpiIssued').textContent = fmt(issued);
   document.getElementById('kpiUsed').textContent = fmt(used);
-  document.getElementById('kpiRate').textContent = rate.toFixed(2) + '%';
+  document.getElementById('kpiRate').textContent = overallRate.toFixed(2) + '%';
+
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = '';
-  const maxRate = Math.max(...rows.map(r=>r.rate), 0.0001);
+  const maxRate = Math.max(...rows.map(r => r.issued ? r.used/r.issued*100 : 0), 0.0001);
   for (const r of rows) {
+    const rate = r.issued ? r.used/r.issued*100 : 0;
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td>' + r.id + '</td><td class="name">' + r.name + '</td><td class="num">' + fmt(r.issued) + '</td><td class="num">' + fmt(r.used) + '</td><td><div class="rate-cell"><div class="bar"><i style="width:' + Math.min(100, r.rate/maxRate*100) + '%"></i></div><div class="rate-val">' + r.rate.toFixed(2) + '%</div></div></td>';
+    tr.innerHTML = '<td>' + r.id + '</td><td class="name">' + r.name + '</td><td class="num">' + fmt(r.issued) + '</td><td class="num">' + fmt(r.used) + '</td><td><div class="rate-cell"><div class="bar"><i style="width:' + Math.min(100, rate/maxRate*100) + '%"></i></div><div class="rate-val">' + rate.toFixed(2) + '%</div></div></td>';
     tbody.appendChild(tr);
   }
   document.getElementById('empty').style.display = rows.length ? 'none' : 'block';
 }
-document.getElementById('search').addEventListener('input', render);
-document.getElementById('sortBy').addEventListener('change', render);
-document.getElementById('sortDir').addEventListener('change', render);
-render();
+
+function init() {
+  document.getElementById('startDate').min = MIN_DATE;
+  document.getElementById('startDate').max = MAX_DATE;
+  document.getElementById('endDate').min = MIN_DATE;
+  document.getElementById('endDate').max = MAX_DATE;
+  document.getElementById('startDate').value = MIN_DATE;
+  document.getElementById('endDate').value = MAX_DATE;
+  render();
+}
+init();
 </script>
 </body>
 </html>
