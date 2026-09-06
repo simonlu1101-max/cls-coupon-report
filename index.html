@@ -68,13 +68,32 @@
     .rank-name { font-size:13px; }
     .rank-item { padding:9px 10px; gap:8px; }
   }
+
+  .chat-fab { position:fixed; right:16px; bottom:18px; width:54px; height:54px; border-radius:50%; background:var(--brand); color:#fff; border:none; box-shadow:0 6px 18px rgba(0,0,0,.18); font-size:24px; z-index:99; cursor:pointer; }
+  .chat-panel { position:fixed; right:14px; bottom:84px; width:min(340px, calc(100vw - 28px)); max-height:72vh; background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:0 12px 32px rgba(0,0,0,.18); display:none; flex-direction:column; overflow:hidden; z-index:100; }
+  .chat-panel.open { display:flex; }
+  .chat-head { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-bottom:1px solid var(--line); background:#fafbfc; }
+  .chat-head span { font-weight:700; }
+  .chat-head button { border:none; background:none; font-size:20px; cursor:pointer; color:var(--muted); }
+  .chat-msgs { flex:1; overflow-y:auto; padding:12px; min-height:150px; white-space:pre-wrap; }
+  .msg { margin-bottom:10px; padding:9px 11px; border-radius:12px; font-size:14px; line-height:1.5; max-width:92%; }
+  .msg.user { background:var(--brand); color:#fff; margin-left:auto; }
+  .msg.bot { background:#f1f4f8; }
+  .chat-quick { display:flex; flex-wrap:wrap; gap:6px; padding:0 12px 8px; }
+  .chat-quick button { border:1px solid var(--line); background:#fff; border-radius:999px; padding:5px 10px; font-size:12px; color:var(--text); }
+  .chat-input { display:flex; align-items:center; gap:6px; padding:10px 12px; border-top:1px solid var(--line); }
+  .chat-input input { flex:1; min-width:0; border:1px solid var(--line); border-radius:999px; padding:8px 12px; font-size:14px; }
+  .chat-input button { border:none; border-radius:999px; padding:8px 12px; font-size:14px; cursor:pointer; }
+  #chatMic { background:#f1f4f8; }
+  #chatMic.listening { background:#ffe3e3; color:#d33; }
+  #chatSend { background:var(--brand); color:#fff; }
 </style>
 </head>
 <body>
 <div class="page">
   <header>
     <h1>优惠券统计报表</h1>
-    <p>数据范围：2026-09-01 至 2026-09-06 · 生成时间：2026-09-07 06:28</p>
+    <p>数据范围：2026-09-01 至 2026-09-06 · 生成时间：2026-09-07 06:47</p>
   </header>
 
   <div class="kpis">
@@ -276,6 +295,158 @@ function init() {
   render();
 }
 init();
+</script>
+
+<button class="chat-fab" id="chatFab" aria-label="数据助手">🎙️</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-head"><span>数据助手</span><button id="chatClose" aria-label="关闭">×</button></div>
+  <div class="chat-msgs" id="chatMsgs"></div>
+  <div class="chat-quick" id="chatQuick">
+    <button>昨日使用数量排名</button>
+    <button>本月平均核销率</button>
+    <button>核销率最高的券</button>
+    <button>昨天发放数量</button>
+  </div>
+  <div class="chat-input">
+    <button id="chatMic" aria-label="语音输入">🎤</button>
+    <input id="chatText" placeholder="例如：昨天核销率排名">
+    <button id="chatSend">发送</button>
+  </div>
+</div>
+<script>
+(function(){
+  var fab=document.getElementById('chatFab');
+  var panel=document.getElementById('chatPanel');
+  var msgs=document.getElementById('chatMsgs');
+  var textInput=document.getElementById('chatText');
+  var sendBtn=document.getElementById('chatSend');
+  var micBtn=document.getElementById('chatMic');
+
+  function addMsg(role, text){ var d=document.createElement('div'); d.className='msg '+(role==='user'?'user':'bot'); d.textContent=text; msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; }
+  function speak(text){ try{ if(!('speechSynthesis' in window)) return; window.speechSynthesis.cancel(); var u=new SpeechSynthesisUtterance(text); u.lang='zh-CN'; u.rate=1.05; window.speechSynthesis.speak(u); }catch(e){} }
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function dstr(y,m,d){ return y+'-'+pad(m)+'-'+pad(d); }
+
+  function parseRange(q){
+    var m=q.match(/(\d{1,2})月(\d{1,2})日?\s*(?:到|至|~|-)\s*(\d{1,2})月(\d{1,2})日?/);
+    if(m){ var y=new Date().getFullYear(); return [dstr(y,Number(m[1]),Number(m[2])), dstr(y,Number(m[3]),Number(m[4]))]; }
+    if(/(昨天|昨日)/.test(q)){ var d=isoDaysAgo(1); return [d,d]; }
+    if(/(今天|今日)/.test(q)){ var d=isoDaysAgo(0); return [d,d]; }
+    if(/(本周)/.test(q)){ var mon=isoDaysAgo((new Date().getDay()+6)%7); return [mon, isoDaysAgo(0)]; }
+    if(/(本月)/.test(q)){ var mm=monthRange(0); return [mm[0], MAX_DATE]; }
+    if(/(上月)/.test(q)){ var lm=monthRange(-1); return [lm[0], lm[1]]; }
+    var m2=q.match(/(\d{1,2})月(\d{1,2})日?/);
+    if(m2){ var y2=new Date().getFullYear(); var d2=dstr(y2,Number(m2[1]),Number(m2[2])); return [d2,d2]; }
+    return [MIN_DATE, MAX_DATE];
+  }
+
+  function buildCum(end){
+    var cum={};
+    for(var i=0;i<DATA.length;i++){ var r=DATA[i]; if(r.date>end) continue; var c=cum[r.id]||{issued:0,used:0}; c.issued+=r.issued; c.used+=r.used; cum[r.id]=c; }
+    return cum;
+  }
+
+  function answer(q){
+    var range=parseRange(q);
+    var start=range[0], end=range[1];
+    var rows=DATA.filter(function(r){ return r.date>=start && r.date<=end; });
+    var days={}; for(var i=0;i<rows.length;i++){ days[rows[i].date]=1; }
+    var cum=buildCum(end);
+
+    var byId={};
+    for(var j=0;j<rows.length;j++){ var r=rows[j]; var g=byId[r.id]||{id:r.id,name:r.name,issued:0,used:0}; g.issued+=r.issued; g.used+=r.used; byId[r.id]=g; }
+    var list=Object.keys(byId).map(function(k){ return byId[k]; });
+    var totalIssued=list.reduce(function(a,x){return a+x.issued;},0);
+    var totalUsed=list.reduce(function(a,x){return a+x.used;},0);
+
+    var named=null;
+    for(var n=0;n<DATA.length;n++){ var nm=DATA[n].name; if(nm && nm.length>=2 && q.indexOf(nm)>=0){ named=nm; break; } }
+    if(named){
+      var keyId=null; for(var k2=0;k2<DATA.length;k2++){ if(DATA[k2].name===named){ keyId=DATA[k2].id; break; } }
+      var g2=byId[keyId]||{issued:0,used:0};
+      var c2=cum[keyId]||{issued:0,used:0};
+      var rate2=c2.issued?c2.used/c2.issued*100:0;
+      return named+'：'+start+'~'+end+' 区间发放 '+fmt(g2.issued)+'，区间使用 '+fmt(g2.used)+'，累计核销率 '+rate2.toFixed(2)+'%。';
+    }
+
+    var wantRate=/(核销率|转化)/.test(q);
+    var wantIssued=/(发放)/.test(q);
+    var wantRank=/(排名|最高|最低|top|前\d)/i.test(q);
+    var lowest=/(最低|最差|倒数)/.test(q);
+    var topN=3;
+    var tm=q.match(/前(\d{1,2})|top\s*(\d{1,2})/i);
+    if(tm){ topN=Math.min(10, Math.max(1, Number(tm[1]||tm[2]||3))); }
+
+    if(wantRank){
+      var metric=wantRate?'rate':(wantIssued?'issued':'used');
+      var arr=list.slice();
+      arr.sort(function(a,b){
+        if(metric==='rate'){
+          var ca=cum[a.id]||{issued:0,used:0}; var cb=cum[b.id]||{issued:0,used:0};
+          var ra=ca.issued?ca.used/ca.issued*100:0; var rb=cb.issued?cb.used/cb.issued*100:0;
+          return lowest?ra-rb:rb-ra;
+        }
+        return lowest?(a[metric]-b[metric]):(b[metric]-a[metric]);
+      });
+      arr=arr.slice(0,topN);
+      var label=metric==='rate'?'核销率':(metric==='issued'?'发放数量':'使用数量');
+      var parts=[];
+      arr.forEach(function(x,idx){
+        var val;
+        if(metric==='rate'){ var c=cum[x.id]||{issued:0,used:0}; val=(c.issued?c.used/c.issued*100:0).toFixed(2)+'%'; }
+        else { val=fmt(x[metric]); }
+        parts.push((idx+1)+'. '+x.name+'：'+val);
+      });
+      return start+'~'+end+' '+label+(lowest?'倒数':'')+'排名：\n'+parts.join('\n');
+    }
+
+    if(/(平均核销率|整体核销率)/.test(q)){
+      var ci=0,cu=0; for(var k in cum){ ci+=cum[k].issued; cu+=cum[k].used; }
+      var rate=ci?cu/ci*100:0;
+      return start+'~'+end+' 平均核销率为 '+rate.toFixed(2)+'%。';
+    }
+    if(wantIssued){ return start+'~'+end+' 发放数量合计 '+fmt(totalIssued)+'。'; }
+    if(/(使用|核销)/.test(q)){ return start+'~'+end+' 使用数量合计 '+fmt(totalUsed)+'，覆盖 '+fmt(Object.keys(days).length)+' 天、'+fmt(list.length)+' 种券。'; }
+    return '可以这样问我：\n· 昨天使用数量排名\n· 本月平均核销率\n· 核销率最高的券\n· 9月1日到9月5日发放数量';
+  }
+
+  function send(q, fromVoice){
+    if(!q){ return; }
+    addMsg('user', q);
+    var a=answer(q);
+    addMsg('bot', a);
+    if(fromVoice){ speak(a); }
+  }
+  sendBtn.addEventListener('click', function(){ var q=textInput.value.trim(); textInput.value=''; send(q,false); });
+  textInput.addEventListener('keydown', function(e){ if(e.key==='Enter'){ var q=textInput.value.trim(); textInput.value=''; send(q,false); } });
+  document.querySelectorAll('#chatQuick button').forEach(function(b){
+    b.addEventListener('click', function(){ send(b.textContent, false); });
+  });
+
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var rec=null; var listening=false;
+  if(SR){ rec=new SR(); rec.lang='zh-CN'; rec.interimResults=false; rec.maxAlternatives=1; }
+  micBtn.addEventListener('click', function(){
+    if(!rec){ addMsg('bot','当前浏览器不支持语音输入，请使用文字输入。'); return; }
+    if(listening){ try{ rec.stop(); }catch(e){} return; }
+    listening=true; micBtn.classList.add('listening'); micBtn.textContent='●';
+    try{ rec.start(); }catch(e){ listening=false; micBtn.classList.remove('listening'); micBtn.textContent='🎤'; addMsg('bot','无法启动麦克风，请检查浏览器权限。'); }
+  });
+  if(rec){
+    rec.onresult=function(e){ var t=e.results[0][0].transcript; textInput.value=''; send(t, true); };
+    rec.onerror=function(){ listening=false; micBtn.classList.remove('listening'); micBtn.textContent='🎤'; addMsg('bot','语音识别失败，请重试或改用文字输入。'); };
+    rec.onend=function(){ listening=false; micBtn.classList.remove('listening'); micBtn.textContent='🎤'; };
+  }
+
+  fab.addEventListener('click', function(){
+    panel.classList.toggle('open');
+    if(panel.classList.contains('open') && msgs.children.length===0){
+      addMsg('bot','你好，我可以帮你查询和分析优惠券数据。可以点下面的问题，也可以直接说话提问。');
+    }
+  });
+  document.getElementById('chatClose').addEventListener('click', function(){ panel.classList.remove('open'); });
+})();
 </script>
 </body>
 </html>
