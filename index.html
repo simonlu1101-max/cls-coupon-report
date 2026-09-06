@@ -49,6 +49,7 @@
   .rank-bar-wrap { height:6px; background:#eef1f5; border-radius:99px; overflow:hidden; margin-top:5px; }
   .rank-bar { height:100%; background:linear-gradient(90deg,#2f6fed,#7aa5ff); border-radius:99px; }
   .rank-used { text-align:right; flex:none; min-width:56px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .rank-rate { text-align:right; flex:none; min-width:70px; font-weight:700; color:var(--brand); font-variant-numeric:tabular-nums; }
   @media (max-width:600px) { .kpi .value { font-size:18px; } th, td { padding:9px 8px; } }
 </style>
 </head>
@@ -56,7 +57,7 @@
 <div class="page">
   <header>
     <h1>优惠券统计报表</h1>
-    <p>数据范围：2026-09-01 至 2026-09-05 · 生成时间：2026-09-06 10:19</p>
+    <p>数据范围：2026-09-01 至 2026-09-05 · 生成时间：2026-09-06 10:23</p>
   </header>
 
   <div class="kpis">
@@ -88,6 +89,9 @@
 
   <div class="section-title">使用数量排名</div>
   <div class="rank-list" id="rankList"></div>
+
+  <div class="section-title">核销率排名</div>
+  <div class="rank-list" id="rateRankList"></div>
 
   <div class="table-wrap">
     <table>
@@ -187,6 +191,24 @@ function render() {
       '<div class="rank-bar-wrap"><div class="rank-bar" style="width:' + (maxUsed ? r.used/maxUsed*100 : 0) + '%"></div></div></div>' +
       '<div class="rank-used">' + fmt(r.used) + '</div>';
     rankList.appendChild(div);
+  });
+
+  const rateRanked = [...rows].map(r => {
+    const c = cum.get(r.id) || { issued:0, used:0 };
+    return { ...r, rate: c.issued ? c.used/c.issued*100 : 0 };
+  }).sort((a,b)=>b.rate-a.rate).slice(0,10);
+  const maxRateRank = rateRanked.length ? rateRanked[0].rate : 0;
+  const rateRankList = document.getElementById('rateRankList');
+  rateRankList.innerHTML = '';
+  rateRanked.forEach((r, idx) => {
+    const c = cum.get(r.id) || { issued:0, used:0 };
+    const div = document.createElement('div');
+    div.className = 'rank-item';
+    div.innerHTML = '<div class="rank-no' + (idx < 3 ? ' top' : '') + '">' + (idx+1) + '</div>' +
+      '<div class="rank-main"><div class="rank-name">' + r.name + '</div><div class="rank-meta">累计发放 ' + fmt(c.issued) + ' · 累计使用 ' + fmt(c.used) + '</div>' +
+      '<div class="rank-bar-wrap"><div class="rank-bar" style="width:' + (maxRateRank ? r.rate/maxRateRank*100 : 0) + '%"></div></div></div>' +
+      '<div class="rank-rate">' + r.rate.toFixed(2) + '%</div>';
+    rateRankList.appendChild(div);
   });
 
   const issued = rows.reduce((s,r)=>s+r.issued,0);
